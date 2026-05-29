@@ -14,6 +14,15 @@ type ProviderWithAssignments = Prisma.ProviderGetPayload<{
   };
 }>;
 
+type AssignmentWithLead = ProviderWithAssignments["assignments"][number];
+
+type LeadWithRelations = Prisma.LeadGetPayload<{
+  include: {
+    service: { select: { name: true } };
+    assignments: { include: { provider: { select: { name: true } } } };
+  };
+}>;
+
 export async function GET() {
   const [providers, leads, totalLeads] = await Promise.all([
     prisma.provider.findMany({
@@ -44,7 +53,7 @@ export async function GET() {
   const providersWithRemaining = providers.map((p: ProviderWithAssignments) => ({
     ...p,
     remaining: Math.max(0, p.monthlyQuota - p.leadsAssigned),
-    assignments: p.assignments.map((a) => ({
+    assignments: p.assignments.map((a: AssignmentWithLead) => ({
       ...a,
       assignedAt: a.assignedAt.toISOString(),
       lead: {
@@ -59,7 +68,7 @@ export async function GET() {
     success: true,
     data: {
       providers: providersWithRemaining,
-      recentLeads: leads.map((l) => ({
+      recentLeads: leads.map((l: LeadWithRelations) => ({
         ...l,
         createdAt: l.createdAt.toISOString(),
       })),
