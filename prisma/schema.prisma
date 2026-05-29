@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Service {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  providers        Provider[] @relation("ServiceProviders")
+  poolProviders    Provider[] @relation("ServicePool")
+  leads            Lead[]
+  allocationStates AllocationState[]
+}
+
+model Provider {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  monthlyQuota  Int      @default(10)
+  leadsAssigned Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  mandatoryForServices Service[] @relation("ServiceProviders")
+  poolForServices      Service[] @relation("ServicePool")
+  assignments          LeadAssignment[]
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  email     String
+  serviceId String
+  createdAt DateTime @default(now())
+
+  service     Service          @relation(fields: [serviceId], references: [id])
+  assignments LeadAssignment[]
+
+  @@unique([phone, serviceId])
+}
+
+model LeadAssignment {
+  id         String   @id @default(cuid())
+  leadId     String
+  providerId String
+  assignedAt DateTime @default(now())
+
+  lead     Lead     @relation(fields: [leadId], references: [id])
+  provider Provider @relation(fields: [providerId], references: [id])
+
+  @@unique([leadId, providerId])
+}
+
+model AllocationState {
+  id           String   @id @default(cuid())
+  serviceId    String   @unique
+  currentIndex Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  eventType   String
+  processedAt DateTime @default(now())
+}
