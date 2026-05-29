@@ -1,5 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+type ProviderWithAssignments = Prisma.ProviderGetPayload<{
+  include: {
+    assignments: {
+      include: {
+        lead: {
+          include: { service: { select: { name: true } } };
+        };
+      };
+    };
+  };
+}>;
 
 export async function GET() {
   const [providers, leads, totalLeads] = await Promise.all([
@@ -28,7 +41,7 @@ export async function GET() {
     prisma.lead.count(),
   ]);
 
-  const providersWithRemaining = providers.map((p) => ({
+  const providersWithRemaining = providers.map((p: ProviderWithAssignments) => ({
     ...p,
     remaining: Math.max(0, p.monthlyQuota - p.leadsAssigned),
     assignments: p.assignments.map((a) => ({
